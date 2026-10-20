@@ -622,4 +622,23 @@ class BlockchainTest {
         assertEquals(25, chain.balanceOf(bobAddress));
         assertTrue(chain.isValid());
     }
+
+    @Test
+    void cannotSubmitAlreadyMinedTransaction() {
+        Blockchain chain = new Blockchain(2);
+        KeyPair ashaWallet = getWallet();
+        String asha = Blockchain.deriveAddress(ashaWallet.getPublic());
+
+        chain.minePending(asha);
+        chain.minePending(asha);
+
+        Transaction pay = Transaction.create(asha, "ravi", 20, ashaWallet.getPrivate(), ashaWallet.getPublic());
+        chain.addTransaction(pay);
+        chain.minePending("miner");
+
+        assertEquals(20, chain.balanceOf("ravi"));
+
+        assertThrows(IllegalArgumentException.class, () -> chain.addTransaction(pay));
+        assertEquals(20, chain.balanceOf("ravi"));
+    }
 }
