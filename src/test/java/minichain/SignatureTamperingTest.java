@@ -143,4 +143,17 @@ class SignatureTamperingTest {
         assertTrue(error.getMessage().toLowerCase().contains("signature"), error.getMessage());
         assertTrue(chain.getPending().isEmpty());
     }
+    @Test
+    void alteredPayeeAndAmountCannotReuseSignature() {
+        KeyPair wallet = getWallet();
+        String asha = Blockchain.deriveAddress(wallet.getPublic());
+        
+        // Asha signs 120 coins to "ravi"
+        Transaction signed = Transaction.create(asha, "ravi", 120, wallet.getPrivate(), wallet.getPublic());
+
+        // Hacker tries to alter payee to "ravi1" and amount to 20 ("ravi" + 120 vs "ravi1" + 20)
+        Transaction forged = new Transaction(signed.id(), asha, "ravi1", 20, signed.senderKey(), signed.signature());
+
+        assertFalse(forged.hasValidSignature(), "Re-split payee and amount must fail signature check");
+    }
 }
