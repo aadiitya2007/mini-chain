@@ -107,9 +107,15 @@ public class Blockchain implements Serializable {
             if (!block.getHash().equals(block.computeHash())) return false;
             if (!block.getPreviousHash().equals(previous.getHash())) return false;
             if (!block.getHash().startsWith(target)) return false;
+            int networkRewardCount = 0;
             for (Transaction tx : block.getTransactions()) {
                 if (!tx.hasValidSignature()) return false;
-                if (!Transaction.NETWORK.equals(tx.from())) {
+                if (Transaction.NETWORK.equals(tx.from())) {
+                    networkRewardCount++;
+                    if (networkRewardCount > 1 || tx.amount() != MINING_REWARD) {
+                        return false;
+                    }
+                } else {
                     if (tx.senderKey() == null || !deriveAddress(tx.senderKey()).equals(tx.from())) return false;
                     PublicKey known = keys.get(tx.from());
                     if (known == null) {
