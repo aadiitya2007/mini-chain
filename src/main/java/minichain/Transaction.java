@@ -28,7 +28,7 @@ public record Transaction(String id, String from, String to, int amount, PublicK
             String id = UUID.randomUUID().toString();
             Signature sig = Signature.getInstance("Ed25519");
             sig.initSign(priv);
-            sig.update((id + from + to + amount).getBytes(StandardCharsets.UTF_8));
+            sig.update((id + "\0" + from + "\0" + to + "\0" + amount).getBytes(StandardCharsets.UTF_8));
             byte[] signatureBytes = sig.sign();
             return new Transaction(id, from, to, amount, pub, signatureBytes);
         } catch (Exception e) {
@@ -42,7 +42,7 @@ public record Transaction(String id, String from, String to, int amount, PublicK
         try {
             Signature sig = Signature.getInstance("Ed25519");
             sig.initVerify(senderKey);
-            sig.update((id + from + to + amount).getBytes(StandardCharsets.UTF_8));
+            sig.update((id + "\0" + from + "\0" + to + "\0" + amount).getBytes(StandardCharsets.UTF_8));
             return sig.verify(signature);
         } catch (Exception e) {
             return false;

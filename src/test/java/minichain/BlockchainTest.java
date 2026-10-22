@@ -641,4 +641,44 @@ class BlockchainTest {
         assertThrows(IllegalArgumentException.class, () -> chain.addTransaction(pay));
         assertEquals(20, chain.balanceOf("ravi"));
     }
+
+    @Test
+    void tamperedMiningRewardAmountFailsValidation() {
+        Blockchain chain = new Blockchain(2);
+        chain.minePending("miner");
+        assertTrue(chain.isValid());
+
+        Block block = chain.getChain().get(1);
+        Transaction legitReward = block.getTransactions().get(0);
+
+        // Replace 50 coin reward with 1,000,000 coins
+        Transaction tamperedReward = new Transaction(legitReward.id(), Transaction.NETWORK, legitReward.to(), 1_000_000, null, null);
+        block.getTransactions().set(0, tamperedReward);
+
+        // Recompute Merkle root and re-mine block hash to satisfy proof-of-work
+        block.tamperMerkleRoot(Block.computeMerkleRoot(block.getTransactions()));
+        block.mine(chain.getDifficulty());
+
+        // isValid must catch that the reward amount is not 50
+        assertFalse(chain.isValid());
+    }
+
+    @Test
+    void duplicateMiningRewardInSingleBlockFailsValidation() {
+        Blockchain chain = new Blockchain(2);
+        chain.minePending("miner");
+        assertTrue(chain.isValid());
+
+        Block block = chain.getChain().get(1);
+
+        // Inject a second 50 coin mining reward in the same block
+        block.getTransactions().add(new Transaction(Transaction.NETWORK, "miner", Blockchain.MINING_REWARD));
+
+        // Recompute Merkle root and re-mine block hash
+        block.tamperMerkleRoot(Block.computeMerkleRoot(block.getTransactions()));
+        block.mine(chain.getDifficulty());
+
+        // isValid must reject multiple network rewards in a single block
+        assertFalse(chain.isValid());
+    }
 }
